@@ -26,7 +26,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Search, Trash2, GripVertical } from "lucide-react";
 import type { PlanBlock, PlanBlockType } from "@/lib/types";
 
-const LIBRARY_CATEGORIES = [
+interface LibraryItem {
+  id: string;
+  label: string;
+  type: PlanBlockType;
+}
+
+const LIBRARY_CATEGORIES: { id: string; label: string; items: LibraryItem[] }[] = [
   {
     id: "goals",
     label: "Goals",
@@ -41,17 +47,17 @@ const LIBRARY_CATEGORIES = [
     ],
   },
   { id: "5r", label: "5R Stages", items: [
-    { id: "5r-remove", label: "Remove (eliminate)", type: "5r" },
-    { id: "5r-replace", label: "Replace (digestive support)", type: "5r" },
-    { id: "5r-reinoculate", label: "Reinoculate (probiotics)", type: "5r" },
-    { id: "5r-repair", label: "Repair (gut lining)", type: "5r" },
-    { id: "5r-rebalance", label: "Rebalance (lifestyle)", type: "5r" },
+    { id: "5r-remove", label: "Remove (eliminate)", type: "5r" as PlanBlockType },
+    { id: "5r-replace", label: "Replace (digestive support)", type: "5r" as PlanBlockType },
+    { id: "5r-reinoculate", label: "Reinoculate (probiotics)", type: "5r" as PlanBlockType },
+    { id: "5r-repair", label: "Repair (gut lining)", type: "5r" as PlanBlockType },
+    { id: "5r-rebalance", label: "Rebalance (lifestyle)", type: "5r" as PlanBlockType },
   ] },
   { id: "peptides", label: "Peptides", items: seedData.peptides.map((p) => ({ id: p.id, label: p.name, type: "peptide" as PlanBlockType })) },
   { id: "diet", label: "Diet", items: [
-    { id: "diet-green-med", label: "Green-Mediterranean diet", type: "diet" },
-    { id: "diet-low-fodmap", label: "Low FODMAP", type: "diet" },
-    { id: "diet-elimination", label: "Elimination protocol", type: "diet" },
+    { id: "diet-green-med", label: "Green-Mediterranean diet", type: "diet" as PlanBlockType },
+    { id: "diet-low-fodmap", label: "Low FODMAP", type: "diet" as PlanBlockType },
+    { id: "diet-elimination", label: "Elimination protocol", type: "diet" as PlanBlockType },
   ] },
   { id: "monitoring", label: "Monitoring", items: [
     ...seedData.biomarkerHierarchy.tier1.map((b) => ({ id: `mon-${b}`, label: `Track ${b}`, type: "monitoring" as PlanBlockType })),
@@ -61,7 +67,7 @@ const LIBRARY_CATEGORIES = [
 function DraggableLibraryItem({
   item,
   categoryId,
-}: { item: { id: string; label: string; type: PlanBlockType }; categoryId: string }) {
+}: { item: LibraryItem; categoryId: string }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `library-${categoryId}-${item.id}`,
     data: { type: "library", categoryId, item },
