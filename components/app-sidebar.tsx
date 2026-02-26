@@ -15,6 +15,7 @@ import {
   Settings,
   Menu,
   ChevronLeft,
+  Map,
 } from "lucide-react";
 import { CommandPaletteTriggerMobile } from "@/components/CommandPaletteTrigger";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { useState } from "react";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/builder", label: "Builder Canvas", icon: Palette },
+  { href: "/body-map", label: "Body Map", icon: Map },
   { href: "/compendium", label: "Compendium", icon: Library },
   { href: "/library", label: "Library", icon: BookOpen },
   { href: "/plans", label: "My Plans", icon: FolderOpen },
@@ -180,6 +182,17 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         >
           <Palette className="h-5 w-5" />
           <span>Builder</span>
+        </Link>
+        <Link
+          href="/body-map"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/body-map" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <Map className="h-5 w-5" />
+          <span>Map</span>
         </Link>
         <Link
           href="/compendium"

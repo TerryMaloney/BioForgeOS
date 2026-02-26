@@ -9,6 +9,8 @@ export interface ParsedImportItem {
   personalNotes?: string;
   refId?: string;
   tags?: string[];
+  organIds?: string[];
+  suggestedModuleName?: string;
 }
 
 const PEPTIDES = seedData.peptides;
@@ -19,6 +21,44 @@ const BIOMARKERS = [
 const FIVE_R = ["Remove", "Replace", "Reinoculate", "Repair", "Rebalance", "eliminate", "digestive support", "probiotics", "gut lining", "lifestyle"];
 const DIET_TERMS = ["diet", "Green-Med", "Mediterranean", "FODMAP", "elimination", "protocol"];
 const CONTEXT_TAGS = ["gut repair", "energy", "preconception", "mitochondria", "case study", "RCT", "2025", "2026", "Nature"];
+
+/** Keywords that map to Body Map organs (for Brandon-style compendium docs) */
+const ORGAN_KEYWORDS: Record<string, string[]> = {
+  brain: ["brain", "cns", "cognitive", "bdnf", "gdf11", "neuro", "neuron", "blood-brain"],
+  liver: ["liver", "hepatic", "detox", "pfas", "toxin", "chemical load", "xenobiotic"],
+  blood: ["apheresis", "plasma", "blood", "serum", "circulation", "plasmapheresis"],
+  gut: ["gut", "intestinal", "gut-blood", "microbiome", "gut-brain", "vagus", "5r", "remove", "replace", "reinoculate", "repair", "rebalance"],
+  heart: ["heart", "cardiovascular", "cardiac"],
+  mitochondria: ["mitochondria", "mitophagy", "urolithin", "ss-31", "oxidative"],
+  reproductive: ["reproductive", "preconception", "fertility", "sperm", "egg"],
+  epigenetic: ["epigenetic", "methylation", "histone", "dna methylation"],
+  kidneys: ["kidney", "renal"],
+  lungs: ["lung", "pulmonary", "respiratory"],
+  skin: ["skin", "dermal"],
+  "bone-muscle": ["bone", "muscle", "skeletal", "sarcopenia"],
+};
+
+function inferOrganIdsFromText(snippet: string): string[] {
+  const lower = snippet.toLowerCase();
+  const organIds: string[] = [];
+  for (const [organId, keywords] of Object.entries(ORGAN_KEYWORDS)) {
+    if (keywords.some((k) => lower.includes(k))) organIds.push(organId);
+  }
+  return [...new Set(organIds)];
+}
+
+/** Extract suggested protocol module names from document structure (TOC, section headers) */
+export function extractSuggestedModulesFromText(raw: string): string[] {
+  const text = raw.trim().toLowerCase();
+  const suggested: string[] = [];
+  if (/\bapheresis\b/.test(text) && (/\btoxin\b/.test(text) || /\bpfas\b/.test(text)))
+    suggested.push("Apheresis Toxin Reduction Stack");
+  if (/\b(gdf11|bdnf|growth factor)\b/.test(text)) suggested.push("Growth Factor Optimization");
+  if (/\bgut-blood\b/.test(text) || (/\bgut\b/.test(text) && /\baxis\b/.test(text)))
+    suggested.push("Gut-Blood Axis Protocol");
+  if (/\bpfas\b/.test(text) && /\bchemical\b/.test(text)) suggested.push("PFAS & Chemical Mixture Mitigation");
+  return [...new Set(suggested)];
+}
 
 function findPeptide(name: string): { name: string; id: string; moa?: string } | undefined {
   const lower = name.toLowerCase();
@@ -67,6 +107,7 @@ export function parseKnowledgeImportText(raw: string): ParsedImportItem[] {
       const snippet = text.slice(Math.max(0, text.search(re) - 20), text.search(re) + 80);
       const doses = extractDoses(snippet);
       const tags = extractContextTags(snippet);
+      const organIds = inferOrganIdsFromText(snippet + " " + (pep.moa ?? ""));
       results.push({
         name: pep.name,
         type: "peptide",
@@ -75,6 +116,7 @@ export function parseKnowledgeImportText(raw: string): ParsedImportItem[] {
         doseExamples: doses.length > 0 ? doses : undefined,
         personalNotes: snippet.length > 60 ? snippet.slice(0, 120).trim() + "…" : undefined,
         tags: tags.length > 0 ? tags : ["Imported from text"],
+        organIds: organIds.length > 0 ? organIds : undefined,
       });
     }
   }
@@ -83,11 +125,13 @@ export function parseKnowledgeImportText(raw: string): ParsedImportItem[] {
   for (const bm of BIOMARKERS) {
     if (text.toLowerCase().includes(bm.toLowerCase()) && !seen.has(`test-${bm}`)) {
       seen.add(`test-${bm}`);
+      const organIds = inferOrganIdsFromText(text);
       results.push({
         name: bm,
         type: "test",
         refId: `test-${bm}`,
         tags: ["Imported from text"],
+        organIds: organIds.length > 0 ? organIds : undefined,
       });
     }
   }
@@ -96,12 +140,14 @@ export function parseKnowledgeImportText(raw: string): ParsedImportItem[] {
   if (results.length === 0) {
     const firstLine = text.split(/\n/)[0]?.trim().slice(0, 120) || text.slice(0, 120);
     const doses = extractDoses(text);
+    const organIds = inferOrganIdsFromText(text);
     results.push({
       name: firstLine || "Imported note",
       type: "peptide",
       doseExamples: doses.length > 0 ? doses : undefined,
       personalNotes: text.length > 120 ? text.slice(0, 300).trim() + "…" : text,
       tags: ["Imported from text"],
+      organIds: organIds.length > 0 ? organIds : undefined,
     });
   }
 
@@ -125,6 +171,8 @@ export function parseKnowledgeImportJson(raw: string): ParsedImportItem[] {
       if (item.doseExamples && Array.isArray(item.doseExamples)) doseExamples.push(...item.doseExamples);
       if (item.duration) doseExamples.push(String(item.duration));
       const pep = type === "peptide" ? findPeptide(name) : undefined;
+      const snippet = (item.moa ?? item.description ?? "") + " " + (item.notes ?? "");
+      const organIds = typeof snippet === "string" ? inferOrganIdsFromText(snippet) : [];
       results.push({
         name: pep?.name ?? name,
         type,
@@ -133,6 +181,7 @@ export function parseKnowledgeImportJson(raw: string): ParsedImportItem[] {
         doseExamples: doseExamples.length > 0 ? doseExamples : undefined,
         personalNotes: item.notes ?? item.personalNotes ?? item.note,
         tags: item.tags ? (Array.isArray(item.tags) ? item.tags : [String(item.tags)]) : ["Imported from JSON"],
+        organIds: organIds.length > 0 ? organIds : undefined,
       });
     }
     return results;

@@ -21,6 +21,7 @@ import { generateProtocol } from "@/lib/protocolGenerator";
 import { getFilteredPhases, getFilteredPlan } from "@/lib/focusFilter";
 import { FocusModeBar } from "@/components/focus-mode-bar";
 import { SynergyGraph } from "@/components/synergy-graph";
+import { BodyMap } from "@/components/body-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Search, Trash2, GripVertical } from "lucide-react";
+import Link from "next/link";
 import type { PlanBlock, PlanBlockType, UserPlan } from "@/lib/types";
 
 function BuilderQuickSearchFAB() {
@@ -358,6 +360,13 @@ export default function ClientBuilder() {
           <div className="lg:col-span-4 min-h-0 flex flex-col gap-4">
             <PlanPreview planOverride={displayPlan} />
             <SynergyGraph plan={currentPlan} />
+            <Link
+              href="/body-map"
+              className="glass rounded-xl border border-[var(--card-border)] p-3 flex flex-col items-center gap-2 hover:border-[var(--gut-green)]/50 transition-colors"
+            >
+              <span className="text-xs font-medium text-[var(--foreground)]/80">Body Map</span>
+              <BodyMap compact />
+            </Link>
           </div>
         </div>
 

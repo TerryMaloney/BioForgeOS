@@ -141,12 +141,52 @@ Use the existing store, types, and UI (e.g. Card, Button, Input); keep it simple
 
 ---
 
+## NEXT INSTRUCTIONS FOR TERRY (Phase 4 – Body Map & Knowledge Engine)
+
+Phase 4 is implemented: Interactive Body Map tab and widget, drag-to-organ tagging, Knowledge Import enhancements (organ tags + suggested protocol modules), visual synergy web on the map, and mobile-first organ detail (tap organ → full-screen card, long-press → quick-add).
+
+### What was added
+
+- **Body Map tab:** New sidebar and mobile nav entry "Body Map" (`/body-map`). Interactive SVG map with organs (Gut, Brain, Liver, Heart, Mitochondria, Lungs, Kidneys, Skin, Reproductive, Bone/Muscle, Vagus, Epigenetic, Blood). Tap organ → detail card (impact score, active blocks, mechanistic notes, chemical load). Glowing connections between organs (Gut–Brain, Liver–Mitochondria, etc.) with thickness from protocol + imported knowledge.
+- **Drag-to-organ:** On Body Map page, drag plan blocks from the left list onto an organ to tag that block with the system. Imported documents (PDF/text) auto-annotate the map (parser assigns `organIds` from keywords: PFAS→liver/brain, GDF11/BDNF→brain, apheresis→blood, gut-blood axis→gut+blood).
+- **Knowledge Import enhancement:** Parser recognizes structure (growth factors, PFAS, apheresis, gut-blood, databases) and sets `organIds` on parsed items; suggests protocol modules (e.g. "Apheresis Toxin Reduction Stack", "Growth Factor Optimization"). Adding to plan uses `addCompendiumItemToPlanWithOrgans` so new blocks are tagged to organs.
+- **Body Map widget:** Builder right column has a compact Body Map linking to `/body-map`.
+- **Mobile:** Tap organ → full-screen slide-up detail card; long-press (context menu) → opens command palette to add block to that organ. Map tab in bottom nav.
+
+### Prioritized next 2 features
+
+1. **Onboarding wizard with lab input and auto-suggest from imported docs** — First-time flow: mission mode, baseline labs; suggest protocols from baseline + from suggested modules (e.g. after importing Brandon’s compendium, show "Apheresis Toxin Reduction Stack" as a suggested module to add).
+2. **N-of-1 experiment builder** — Hypothesis, duration, metrics, before/after analysis tied to the tracker.
+
+### Copy-paste prompt for implementing #1 (onboarding wizard)
+
+Use this prompt with your AI or dev:
+
+```
+Implement an onboarding wizard for BioForgeOS that:
+1. Shows on first visit (or when "Start onboarding" is clicked from Dashboard) a short flow: Welcome → Mission mode choice (from seedData.missionModes) → Baseline labs input (tier1 biomarkers: HbA1c, hs-CRP, Vitamin D, Omega-3 Index, Homocysteine) with optional numeric values and units.
+2. Persists chosen mission mode and baseline labs in the store (onboardingComplete: boolean, baselineLabs: { biomarkerId: string; value: number; unit?: string }[]); persist in partialize.
+3. After onboarding, auto-suggest a starter protocol from baseline (e.g. hs-CRP > 3 → anti-inflammatory blocks) AND show "Suggested protocol modules" from store (suggestedProtocolModules) so that after importing a doc like Brandon's compendium, suggested modules (e.g. "Apheresis Toxin Reduction Stack", "Growth Factor Optimization") appear as cards with "Add to plan".
+4. Skip onboarding if onboardingComplete is true or user dismisses ("Skip for now" sets onboardingComplete true).
+Use existing store, types, and UI; keep it mobile-friendly.
+```
+
+### Ready-to-copy message for Brandon (Body Map)
+
+After deploy, send Brandon:
+
+```
+Your Body Map is live. Drop your master compendium (or any PDF/text) into "Feed the OS" on the Compendium page — the app will parse it, tag entries to organs (e.g. PFAS→liver/brain, apheresis→blood), and suggest protocol modules. Open the Body Map tab to see your protocol and imported knowledge as an X-ray: tap any organ for impact, active blocks, and notes; drag blocks onto organs to tag systems; use "Add block" to add from Compendium to a specific system. Synergy lines show Gut–Brain, Liver–Mitochondria, and more. [PASTE YOUR VERCEL URL HERE]
+```
+
+---
+
 ## FINAL READY FOR BRANDON
 
 After deploying to Vercel, your live app will be at a URL like **https://bioforgeos.vercel.app**. Replace the placeholder below with your actual URL before sending to Brandon.
 
 **Live URL:** https://your-bioforgeos-url.vercel.app — Add to home screen on your phone for one-tap access.
 
-**Message for Brandon (copy and send):** Your BioForge OS is live. Use "Feed the OS — Import Knowledge" on the Compendium page to paste or drop PDF/text/JSON and turn research into compendium items and plan blocks. On phone, use the "Quick Search" tab in the bottom nav (no keyboard). Open the link, add to home screen, and you are set. [PASTE YOUR VERCEL URL HERE]
+**Message for Brandon (copy and send):** Your BioForge OS is live. Use "Feed the OS — Import Knowledge" on the Compendium page to paste or drop PDF/text/JSON and turn research into compendium items and plan blocks. Open the **Body Map** tab to see your protocol and imported knowledge on an interactive map: tap organs for details, drag blocks onto organs to tag systems, and use suggested modules (e.g. Apheresis Toxin Reduction, Growth Factor Optimization) after importing. On phone, use the "Quick Search" tab in the bottom nav and the "Map" tab for the Body Map. Add to home screen for one-tap access. [PASTE YOUR VERCEL URL HERE]
 
-**Mobile test checklist:** Feed the OS (Compendium → Import Knowledge → paste or drop file); Quick Search (bottom nav); drag library items into phases in every focus mode (Peptides Only, Gut Repair, etc.).
+**Mobile test checklist:** Feed the OS (Compendium → Import Knowledge → paste or drop file); Quick Search (bottom nav); Body Map (Map tab → tap organ, long-press to add block); drag library items into phases in every focus mode.

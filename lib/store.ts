@@ -58,6 +58,7 @@ interface AppState {
 
   addCompendiumItemToPlan: (phaseIndex: number, item: CompendiumItem) => void;
   addCompendiumItemsToPlan: (phaseIndex: number, itemIds: string[]) => void;
+  addCompendiumItemToPlanWithOrgans: (phaseIndex: number, item: CompendiumItem, organIds: string[]) => void;
 
   setFocusMode: (mode: FocusMode, moduleId?: string | null) => void;
 
@@ -66,6 +67,12 @@ interface AppState {
 
   createPlanFromBlocks: (blocks: PlanBlock[], planName?: string) => void;
   appendBlocksToPlan: (planId: string, blocks: Omit<PlanBlock, "phaseIndex" | "weekIndex">[], phaseIndex: number) => void;
+
+  bodyMapAnnotations: Record<string, { notes?: string; chemicalLoad?: number }>;
+  suggestedProtocolModules: string[];
+  setBodyMapAnnotation: (organId: string, data: { notes?: string; chemicalLoad?: number }) => void;
+  addSuggestedProtocolModule: (name: string) => void;
+  updateBlockOrganIds: (blockId: string, organIds: string[]) => void;
 
   logDose: (entry: DoseLogEntry) => void;
   getDosesForDate: (date: string) => DoseLogEntry[];
@@ -106,6 +113,9 @@ export const useStore = create<AppState>()(
       focusMode: "full",
       focusModuleId: null,
       ui: { quickAddOpen: false, commandPaletteOpen: false, recentCommandSearches: [], knowledgeImportOpen: false },
+
+      bodyMapAnnotations: {},
+      suggestedProtocolModules: [],
 
       setCurrentPlan: (plan) => set({ currentPlan: plan }),
 
@@ -315,6 +325,17 @@ export const useStore = create<AppState>()(
         });
       },
 
+      addCompendiumItemToPlanWithOrgans: (phaseIndex, item, organIds) => {
+        get().addBlockToPhase(phaseIndex, 0, {
+          id: `block-${item.id}-${Date.now()}`,
+          type: item.type,
+          refId: item.refId ?? item.id,
+          label: item.name,
+          notes: item.personalNotes,
+          organIds,
+        });
+      },
+
       addCompendiumItemsToPlan: (phaseIndex, itemIds) => {
         const items = get().compendiumItems.filter((i) => itemIds.includes(i.id));
         items.forEach((item) => get().addCompendiumItemToPlan(phaseIndex, item));
@@ -362,6 +383,26 @@ export const useStore = create<AppState>()(
           currentPlan: s.currentPlan?.id === planId ? updated : s.currentPlan,
         }));
       },
+
+      setBodyMapAnnotation: (organId, data) =>
+        set((s) => ({
+          bodyMapAnnotations: { ...s.bodyMapAnnotations, [organId]: { ...s.bodyMapAnnotations[organId], ...data } },
+        })),
+      addSuggestedProtocolModule: (name) =>
+        set((s) => ({
+          suggestedProtocolModules: s.suggestedProtocolModules.includes(name)
+            ? s.suggestedProtocolModules
+            : [...s.suggestedProtocolModules, name],
+        })),
+      updateBlockOrganIds: (blockId, organIds) =>
+        set((s) => {
+          if (!s.currentPlan) return {};
+          const phases = s.currentPlan.phases.map((p) => ({
+            ...p,
+            blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, organIds } : b)),
+          }));
+          return { currentPlan: { ...s.currentPlan, phases, updatedAt: now() } };
+        }),
     }),
     {
       name: "bioforgeos-storage",
@@ -378,6 +419,8 @@ export const useStore = create<AppState>()(
         focusMode: s.focusMode,
         focusModuleId: s.focusModuleId,
         ui: { recentCommandSearches: s.ui.recentCommandSearches ?? [] },
+        bodyMapAnnotations: s.bodyMapAnnotations,
+        suggestedProtocolModules: s.suggestedProtocolModules,
       }),
     }
   )

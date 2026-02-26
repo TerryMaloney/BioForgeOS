@@ -25,6 +25,7 @@ import { useStore } from "@/lib/store";
 import {
   parseKnowledgeImportText,
   parseKnowledgeImportJson,
+  extractSuggestedModulesFromText,
   type ParsedImportItem,
 } from "@/lib/knowledgeImportParser";
 import type { CompendiumItem, PlanBlockType } from "@/lib/types";
@@ -56,7 +57,9 @@ export function KnowledgeImportModal() {
   const setUI = useStore((s) => s.setUI);
   const addCompendiumItem = useStore((s) => s.addCompendiumItem);
   const addCompendiumItemToPlan = useStore((s) => s.addCompendiumItemToPlan);
+  const addCompendiumItemToPlanWithOrgans = useStore((s) => s.addCompendiumItemToPlanWithOrgans);
   const addSavedModule = useStore((s) => s.addSavedModule);
+  const addSuggestedProtocolModule = useStore((s) => s.addSuggestedProtocolModule);
 
   const [pasteText, setPasteText] = useState("");
   const [parsed, setParsed] = useState<ParsedImportItem[]>([]);
@@ -85,7 +88,8 @@ export function KnowledgeImportModal() {
     const items = parseKnowledgeImportText(pasteText);
     setParsed(items);
     setIncluded(new Set(items.map((_, i) => i)));
-  }, [pasteText]);
+    extractSuggestedModulesFromText(pasteText).forEach((name) => addSuggestedProtocolModule(name));
+  }, [pasteText, addSuggestedProtocolModule]);
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
@@ -108,13 +112,14 @@ export function KnowledgeImportModal() {
       const items = parseKnowledgeImportText(text);
       setParsed(items);
       setIncluded(new Set(items.map((_, i) => i)));
+      extractSuggestedModulesFromText(text).forEach((name) => addSuggestedProtocolModule(name));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to read file");
       setParsed([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addSuggestedProtocolModule]);
 
   const toCompendiumItem = (p: ParsedImportItem): CompendiumItem => ({
     id: crypto.randomUUID(),
@@ -127,6 +132,7 @@ export function KnowledgeImportModal() {
     tags: p.tags ?? [],
     versionHistory: [{ at: new Date().toISOString(), note: "Knowledge Import" }],
     links: [],
+    organIds: p.organIds,
   });
 
   const includedItems = parsed.filter((_, i) => included.has(i));
@@ -141,7 +147,10 @@ export function KnowledgeImportModal() {
     includedItems.forEach((p) => {
       const item = toCompendiumItem(p);
       addCompendiumItem(item);
-      addCompendiumItemToPlan(0, item);
+      if (p.organIds && p.organIds.length > 0)
+        addCompendiumItemToPlanWithOrgans(0, item, p.organIds);
+      else
+        addCompendiumItemToPlan(0, item);
     });
     setParsed([]);
     setUI({ knowledgeImportOpen: false });

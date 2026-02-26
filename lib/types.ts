@@ -46,6 +46,7 @@ export interface CompendiumItem {
   versionHistory: { at: string; note: string }[];
   links: { label: string; url: string }[];
   refId?: string; // link to seed peptide/test
+  organIds?: string[]; // Body Map: which systems this item targets
 }
 
 export interface SavedModule {
@@ -69,6 +70,7 @@ export interface PlanBlock {
   phaseIndex: number;
   weekIndex: number;
   notes?: string;
+  organIds?: string[]; // Body Map: which systems this block targets
 }
 
 export interface Phase {
@@ -128,4 +130,5 @@ export interface UIState {
   commandPaletteOpen?: boolean;
   recentCommandSearches?: string[];
   knowledgeImportOpen?: boolean;
+  bodyMapSelectedOrgan?: string | null;
 }
