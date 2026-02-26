@@ -127,4 +127,5 @@ export interface UIState {
   quickAddOpen: boolean;
   commandPaletteOpen?: boolean;
   recentCommandSearches?: string[];
+  knowledgeImportOpen?: boolean;
 }

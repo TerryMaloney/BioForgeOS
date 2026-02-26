@@ -105,7 +105,7 @@ export const useStore = create<AppState>()(
       savedModules: [],
       focusMode: "full",
       focusModuleId: null,
-      ui: { quickAddOpen: false, commandPaletteOpen: false, recentCommandSearches: [] },
+      ui: { quickAddOpen: false, commandPaletteOpen: false, recentCommandSearches: [], knowledgeImportOpen: false },
 
       setCurrentPlan: (plan) => set({ currentPlan: plan }),
 

@@ -19,6 +19,7 @@ import {
   Bug,
   Activity,
   Download,
+  Upload,
   Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +174,17 @@ export function CommandPalette() {
         )}
         <Command.Group heading="Actions">
           <Command.Item
-            value="isolate peptides"
+            value="import knowledge feed the os"
+            onSelect={() => {
+              setUI({ knowledgeImportOpen: true });
+              setOpen(false);
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm data-[selected=true]:bg-[var(--gut-green)]/20"
+          >
+            <Upload className="h-4 w-4 shrink-0" />
+            <span>Feed the OS — Import Knowledge</span>
+          </Command.Item>
+          <Command.Item
             onSelect={() => {
               addRecentCommandSearch("Isolate peptides");
               setFocusMode("peptides-only");

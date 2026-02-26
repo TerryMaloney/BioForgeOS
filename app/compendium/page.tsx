@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion } from "framer-motion";
-import { Search, Plus, Edit2, Trash2, FolderPlus } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, FolderPlus, Upload } from "lucide-react";
 import type { CompendiumItem, PlanBlockType } from "@/lib/types";
 
 function CompendiumEditModal({
@@ -157,6 +157,25 @@ export default function CompendiumPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [saveModuleOpen, setSaveModuleOpen] = useState(false);
   const [newModuleName, setNewModuleName] = useState("");
+  const [dropActive, setDropActive] = useState(false);
+
+  const openKnowledgeImport = () => useStore.getState().setUI({ knowledgeImportOpen: true });
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+    if (["pdf", "json", "txt", "md"].includes(ext)) {
+      openKnowledgeImport();
+      setTimeout(() => {
+        document.dispatchEvent(new CustomEvent("knowledge-import-file", { detail: file }));
+      }, 100);
+    }
+  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setDropActive(true); };
+  const handleDragLeave = () => setDropActive(false);
 
   useEffect(() => {
     if (compendiumItems.length === 0) {
@@ -202,7 +221,16 @@ export default function CompendiumPage() {
         </p>
       </motion.div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={openKnowledgeImport}
+          title="Paste or upload PDF, JSON, TXT, MD to extract items"
+          className="bg-[var(--gut-green)] hover:opacity-90"
+        >
+          <Upload className="h-4 w-4 mr-1" /> Feed the OS — Import Knowledge
+        </Button>
         <Button
           variant="secondary"
           size="sm"
@@ -211,6 +239,16 @@ export default function CompendiumPage() {
         >
           <Plus className="h-4 w-4 mr-1" /> Quick add
         </Button>
+      </div>
+
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`mb-4 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${dropActive ? "border-[var(--gut-green)] bg-[var(--gut-green)]/10" : "border-[var(--card-border)] bg-white/5"}`}
+      >
+        <Upload className="h-8 w-8 mx-auto mb-2 text-[var(--foreground)]/50" />
+        <p className="text-sm text-[var(--foreground)]/70">Drop a PDF, JSON, TXT, or MD file here to import</p>
       </div>
 
       <Card>

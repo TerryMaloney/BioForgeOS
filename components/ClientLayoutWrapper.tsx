@@ -6,6 +6,7 @@ import { QuickAddModal } from "@/components/QuickAddModal";
 import { CommandPalette } from "@/components/command-palette";
 import { ParticlesBg } from "@/components/particles-bg";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
+import { KnowledgeImportModal } from "@/components/KnowledgeImportModal";
 import { useStore } from "@/lib/store";
 
 export function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
       <AppSidebar>{children}</AppSidebar>
       <QuickAddModal open={quickAddOpen} onOpenChange={(open) => setUI({ quickAddOpen: open })} />
       <CommandPalette />
+      <KnowledgeImportModal />
     </>
   );
 }

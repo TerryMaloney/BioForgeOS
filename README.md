@@ -138,3 +138,15 @@ Use the existing store, types, and UI (e.g. Card, Button, Input); keep it simple
 2. Push to main: `git add -A && git commit -m "Phase 3: mobile-first Quick Search, enhanced palette" && git push origin main`.
 3. In Vercel: Deployments → Redeploy on latest, or let push trigger deploy.
 4. Test live URL on a real device (add to home screen, use Quick Search from bottom nav).
+
+---
+
+## FINAL READY FOR BRANDON
+
+After deploying to Vercel, your live app will be at a URL like **https://bioforgeos.vercel.app**. Replace the placeholder below with your actual URL before sending to Brandon.
+
+**Live URL:** https://your-bioforgeos-url.vercel.app — Add to home screen on your phone for one-tap access.
+
+**Message for Brandon (copy and send):** Your BioForge OS is live. Use "Feed the OS — Import Knowledge" on the Compendium page to paste or drop PDF/text/JSON and turn research into compendium items and plan blocks. On phone, use the "Quick Search" tab in the bottom nav (no keyboard). Open the link, add to home screen, and you are set. [PASTE YOUR VERCEL URL HERE]
+
+**Mobile test checklist:** Feed the OS (Compendium → Import Knowledge → paste or drop file); Quick Search (bottom nav); drag library items into phases in every focus mode (Peptides Only, Gut Repair, etc.).

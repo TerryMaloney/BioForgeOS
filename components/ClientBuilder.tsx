@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  rectIntersection,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -300,7 +301,7 @@ export default function ClientBuilder() {
     <TooltipProvider>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
