@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import type { RefCallback } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useStore } from "@/lib/store";
-import { ORGANS, getOrganConnections, type OrganId } from "@/lib/bodyMapOrgans";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ORGANS, getOrganConnections } from "@/lib/bodyMapOrgans";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Plus, GripVertical } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { X, Plus } from "lucide-react";
 
 const VIEW_BOX = "0 0 200 400";
 
@@ -20,6 +23,8 @@ function DroppableOrgan({
   selected,
   onClick,
   onContextMenu,
+  onTouchStart,
+  onTouchEnd,
   children,
 }: {
   organ: { id: string; cx: number; cy: number; r: number; label: string };
@@ -27,6 +32,8 @@ function DroppableOrgan({
   selected: boolean;
   onClick: (e: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onTouchStart: () => void;
+  onTouchEnd: () => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: organ.id, data: { organId: organ.id } });
@@ -35,7 +42,9 @@ function DroppableOrgan({
       ref={setNodeRef as RefCallback<SVGGElement | null>}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      style={{ cursor: "pointer" }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{ cursor: "pointer", touchAction: "manipulation" }}
     >
       {children}
       {isOver && (
@@ -88,16 +97,42 @@ export function BodyMap({ compact = false, onAddToOrgan, enableDroppables = fals
     return strength;
   }, [blocksByOrgan]);
 
+  const longPressFiredRef = useRef(false);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleOrganClick = useCallback(
     (e: React.MouseEvent, organId: string) => {
       e.stopPropagation();
+      e.preventDefault();
+      if (longPressFiredRef.current) {
+        longPressFiredRef.current = false;
+        return;
+      }
       setSelectedOrgan(selectedOrgan === organId ? null : organId);
     },
     [selectedOrgan, setSelectedOrgan]
   );
 
-  const handleLongPress = useCallback(
+  const handleTouchStart = useCallback(
     (organId: string) => {
+      longPressTimeoutRef.current = setTimeout(() => {
+        longPressFiredRef.current = true;
+        onAddToOrgan?.(organId);
+      }, 450);
+    },
+    [onAddToOrgan]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, organId: string) => {
+      e.preventDefault();
       onAddToOrgan?.(organId);
     },
     [onAddToOrgan]
@@ -107,7 +142,7 @@ export function BodyMap({ compact = false, onAddToOrgan, enableDroppables = fals
     <div className={compact ? "relative" : "relative w-full max-w-lg mx-auto"}>
       <svg
         viewBox={VIEW_BOX}
-        className="w-full h-auto min-h-[320px] touch-none"
+        className="w-full h-auto min-h-[320px] select-none"
         style={{ maxHeight: compact ? 280 : 480 }}
       >
         {/* Subtle body outline */}
@@ -145,7 +180,7 @@ export function BodyMap({ compact = false, onAddToOrgan, enableDroppables = fals
                 fill={selected ? "rgba(34,197,94,0.4)" : active ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.08)"}
                 stroke={selected ? "var(--gut-green)" : "rgba(255,255,255,0.2)"}
                 strokeWidth={selected ? 2.5 : 1}
-                className="pointer-events-none"
+                className="cursor-pointer transition-all hover:fill-[rgba(34,197,94,0.3)] pointer-events-auto"
               />
               {!compact && (
                 <text
@@ -167,72 +202,54 @@ export function BodyMap({ compact = false, onAddToOrgan, enableDroppables = fals
                 active={active}
                 selected={selected}
                 onClick={(e) => handleOrganClick(e, organ.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  handleLongPress(organ.id);
-                }}
+                onContextMenu={(e) => handleContextMenu(e, organ.id)}
+                onTouchStart={() => handleTouchStart(organ.id)}
+                onTouchEnd={handleTouchEnd}
               >
                 {circleEl}
               </DroppableOrgan>
             );
           }
           return (
-            <g key={organ.id}>
-              <circle
-                cx={organ.cx}
-                cy={organ.cy}
-                r={organ.r}
-                fill={selected ? "rgba(34,197,94,0.4)" : active ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.08)"}
-                stroke={selected ? "var(--gut-green)" : "rgba(255,255,255,0.2)"}
-                strokeWidth={selected ? 2.5 : 1}
-                className="cursor-pointer transition-all hover:fill-[rgba(34,197,94,0.3)]"
-                onClick={(e) => handleOrganClick(e, organ.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  handleLongPress(organ.id);
-                }}
-              />
-              {!compact && (
-                <text
-                  x={organ.cx}
-                  y={organ.cy + 4}
-                  textAnchor="middle"
-                  className="fill-[var(--foreground)]/80 text-[8px] pointer-events-none"
-                >
-                  {organ.label.split(/[\s/]/)[0]}
-                </text>
-              )}
+            <g
+              key={organ.id}
+              onClick={(e) => handleOrganClick(e, organ.id)}
+              onContextMenu={(e) => handleContextMenu(e, organ.id)}
+              onTouchStart={() => handleTouchStart(organ.id)}
+              onTouchEnd={handleTouchEnd}
+              className="cursor-pointer"
+              style={{ touchAction: "manipulation" }}
+            >
+              {circleEl}
             </g>
           );
         })}
       </svg>
 
-      {/* Detail card (desktop: side panel, mobile: full-screen slide up) */}
-      <AnimatePresence>
-        {selectedOrgan && (
-          <>
-            <div
-              className="fixed inset-0 z-40 bg-black/40 md:bg-transparent"
-              onClick={() => setSelectedOrgan(null)}
-              aria-hidden
+      {/* Full-screen slide-up detail (Dialog: sheet-like on mobile) */}
+      <Dialog open={!!selectedOrgan} onOpenChange={(open) => !open && setSelectedOrgan(null)}>
+        <DialogContent
+          showClose={false}
+          className="fixed left-0 right-0 top-auto bottom-0 max-h-[90vh] w-full translate-x-0 translate-y-0 rounded-t-2xl border-t p-6 md:left-[50%] md:right-auto md:top-[50%] md:bottom-auto md:max-h-[85vh] md:w-full md:max-w-md md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-xl"
+        >
+          {selectedOrgan && (
+            <OrganDetailCard
+              organId={selectedOrgan}
+              onClose={() => setSelectedOrgan(null)}
+              onAddToOrgan={onAddToOrgan}
             />
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed left-4 right-4 bottom-4 md:left-auto md:right-4 md:top-20 md:bottom-auto z-50 md:w-80 md:max-h-[70vh]"
-            >
-              <OrganDetailCard
-                organId={selectedOrgan}
-                onClose={() => setSelectedOrgan(null)}
-                onAddToOrgan={onAddToOrgan}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function impactRingColor(score: number): string {
+  if (score === 0) return "border-[var(--foreground)]/30";
+  if (score <= 2) return "border-[var(--gut-green)]";
+  if (score <= 4) return "border-amber-400";
+  return "border-amber-500";
 }
 
 function OrganDetailCard({
@@ -264,19 +281,22 @@ function OrganDetailCard({
   if (!organ) return null;
 
   return (
-    <Card className="glass border-[var(--card-border)] shadow-xl">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
+    <>
+      <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2 text-left">
+        <DialogTitle className="text-lg flex items-center gap-3">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 bg-transparent ${impactRingColor(impactScore)} text-sm font-bold text-[var(--foreground)]`}
+            aria-hidden
+          >
+            {impactScore}
+          </span>
           {organ.label}
-          <Badge variant="secondary" className="text-xs">
-            Impact {impactScore}
-          </Badge>
-        </CardTitle>
+        </DialogTitle>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
           <X className="h-4 w-4" />
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      </DialogHeader>
+      <div className="space-y-4 pt-2">
         {annotation?.notes && (
           <p className="text-sm text-[var(--foreground)]/80">{annotation.notes}</p>
         )}
@@ -284,16 +304,18 @@ function OrganDetailCard({
           <p className="text-xs text-amber-400">Chemical load: {annotation.chemicalLoad}</p>
         )}
         <div>
-          <p className="text-xs font-medium text-[var(--foreground)]/70 mb-1">Active blocks</p>
+          <p className="text-xs font-medium text-[var(--foreground)]/70 mb-2">Active blocks</p>
           {blocks.length === 0 ? (
-            <p className="text-xs text-[var(--foreground)]/50">None tagged yet</p>
+            <p className="text-sm text-[var(--foreground)]/60 rounded-lg border border-dashed border-[var(--card-border)] p-4">
+              No active blocks tagged to this organ yet. Drag a block from the list on the left, or use Quick Search to add one.
+            </p>
           ) : (
-            <ScrollArea className="h-24">
-              <ul className="text-xs space-y-1">
+            <ScrollArea className="h-32 max-h-[40vh]">
+              <ul className="text-sm space-y-2">
                 {blocks.map((b) => (
-                  <li key={b.id} className="flex items-center gap-1">
+                  <li key={b.id} className="flex items-center gap-2">
                     <span className="text-[var(--foreground)]/90">{b.label}</span>
-                    <span className="text-[var(--foreground)]/50">({b.phase})</span>
+                    <span className="text-[var(--foreground)]/50 text-xs">({b.phase})</span>
                   </li>
                 ))}
               </ul>
@@ -310,7 +332,7 @@ function OrganDetailCard({
             Add block to {organ.label.split(/[\s/]/)[0]}
           </Button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 }
