@@ -17,6 +17,9 @@ import {
 import { useStore } from "@/lib/store";
 import { seedData } from "@/lib/seedData";
 import { generateProtocol } from "@/lib/protocolGenerator";
+import { getFilteredPhases, getFilteredPlan } from "@/lib/focusFilter";
+import { FocusModeBar } from "@/components/focus-mode-bar";
+import { SynergyGraph } from "@/components/synergy-graph";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +27,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Search, Trash2, GripVertical } from "lucide-react";
-import type { PlanBlock, PlanBlockType } from "@/lib/types";
+import type { PlanBlock, PlanBlockType, UserPlan } from "@/lib/types";
+
+function BuilderQuickSearchFAB() {
+  const setUI = useStore((s) => s.setUI);
+  return (
+    <button
+      type="button"
+      onClick={() => setUI({ commandPaletteOpen: true })}
+      className="fixed bottom-20 md:bottom-6 right-6 z-20 h-12 w-12 rounded-full bg-[var(--gut-green)] text-white shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition-transform"
+      aria-label="Quick Search & Add"
+    >
+      <Search className="h-5 w-5" />
+    </button>
+  );
+}
 
 interface LibraryItem {
   id: string;
@@ -153,9 +170,10 @@ function DroppablePhaseColumn({
   );
 }
 
-function PlanPreview() {
+function PlanPreview({ planOverride }: { planOverride?: UserPlan | null }) {
   const currentPlan = useStore((s) => s.currentPlan);
-  const protocol = useMemo(() => generateProtocol(currentPlan ?? null), [currentPlan]);
+  const plan = planOverride ?? currentPlan;
+  const protocol = useMemo(() => generateProtocol(plan ?? null), [plan]);
 
   if (!protocol) {
     return (
@@ -207,10 +225,23 @@ function PlanPreview() {
 
 export default function ClientBuilder() {
   const currentPlan = useStore((s) => s.currentPlan);
+  const focusMode = useStore((s) => s.focusMode);
+  const focusModuleId = useStore((s) => s.focusModuleId);
+  const savedModules = useStore((s) => s.savedModules);
   const addBlockToPhase = useStore((s) => s.addBlockToPhase);
   const removeBlock = useStore((s) => s.removeBlock);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const getModuleItemIds = (id: string) => savedModules.find((m) => m.id === id)?.itemIds ?? [];
+  const filteredPhases = useMemo(
+    () => getFilteredPhases(currentPlan, focusMode, focusModuleId, getModuleItemIds),
+    [currentPlan, focusMode, focusModuleId, savedModules]
+  );
+  const displayPlan = useMemo(
+    () => getFilteredPlan(currentPlan, focusMode, focusModuleId, getModuleItemIds),
+    [currentPlan, focusMode, focusModuleId, savedModules]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -307,6 +338,7 @@ export default function ClientBuilder() {
 
           {/* Center: Canvas */}
           <div className="lg:col-span-5 flex flex-col gap-4 overflow-auto">
+            <FocusModeBar />
             <h2 className="text-lg font-semibold">Canvas</h2>
             <div className="flex gap-4 flex-1 min-h-0">
               {currentPlan.phases.map((phase, phaseIndex) => (
@@ -314,16 +346,17 @@ export default function ClientBuilder() {
                   key={phase.id}
                   phase={phase}
                   phaseIndex={phaseIndex}
-                  blocks={phase.blocks}
+                  blocks={filteredPhases[phaseIndex]?.blocks ?? []}
                   onRemoveBlock={(blockId) => handleRemoveBlock(phaseIndex, blockId)}
                 />
               ))}
             </div>
           </div>
 
-          {/* Right: Preview */}
-          <div className="lg:col-span-4 min-h-0">
-            <PlanPreview />
+          {/* Right: Preview + Synergy Graph */}
+          <div className="lg:col-span-4 min-h-0 flex flex-col gap-4">
+            <PlanPreview planOverride={displayPlan} />
+            <SynergyGraph plan={currentPlan} />
           </div>
         </div>
 
@@ -334,6 +367,8 @@ export default function ClientBuilder() {
             </div>
           ) : null}
         </DragOverlay>
+        {/* FAB: Quick Search on builder */}
+        <BuilderQuickSearchFAB />
       </DndContext>
     </TooltipProvider>
   );

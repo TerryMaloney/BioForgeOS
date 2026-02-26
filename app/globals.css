@@ -9,9 +9,32 @@
   --energy-blue-muted: #2563eb;
   --accent-orange: #f97316;
   --accent-orange-muted: #ea580c;
-  --card-glass: rgba(15, 23, 42, 0.7);
-  --card-border: rgba(34, 197, 94, 0.2);
+  --card-glass: rgba(15, 23, 42, 0.82);
+  --card-border: rgba(34, 197, 94, 0.25);
   --sidebar-bg: rgba(12, 18, 34, 0.95);
+}
+
+/* Stronger glassmorphism */
+.glass {
+  background: var(--card-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+}
+
+.glass-sidebar {
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--card-border);
+}
+
+/* Optional particle canvas container (z behind content) */
+.particles-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
 @theme inline {
@@ -25,19 +48,4 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-}
-
-/* Glassmorphism */
-.glass {
-  background: var(--card-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--card-border);
-}
-
-.glass-sidebar {
-  background: var(--sidebar-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-right: 1px solid var(--card-border);
 }

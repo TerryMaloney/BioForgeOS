@@ -9,6 +9,10 @@ import type {
   SymptomEntry,
   RetestAlert,
   SettingsState,
+  CompendiumItem,
+  SavedModule,
+  FocusMode,
+  UIState,
 } from "./types";
 
 function defaultPhases(): Phase[] {
@@ -27,6 +31,11 @@ interface AppState {
   symptomEntries: SymptomEntry[];
   retestAlerts: RetestAlert[];
   settings: SettingsState;
+  compendiumItems: CompendiumItem[];
+  savedModules: SavedModule[];
+  focusMode: FocusMode;
+  focusModuleId: string | null;
+  ui: UIState;
 
   setCurrentPlan: (plan: UserPlan | null) => void;
   updateCurrentPlanPhases: (phases: Phase[]) => void;
@@ -38,6 +47,25 @@ interface AppState {
   loadPlan: (id: string) => void;
   deletePlan: (id: string) => void;
   duplicatePlan: (id: string) => void;
+
+  addCompendiumItem: (item: Omit<CompendiumItem, "id"> | CompendiumItem) => void;
+  updateCompendiumItem: (id: string, patch: Partial<CompendiumItem>) => void;
+  removeCompendiumItem: (id: string) => void;
+  setCompendiumItems: (items: CompendiumItem[]) => void;
+
+  addSavedModule: (module: Omit<SavedModule, "id">) => void;
+  removeSavedModule: (id: string) => void;
+
+  addCompendiumItemToPlan: (phaseIndex: number, item: CompendiumItem) => void;
+  addCompendiumItemsToPlan: (phaseIndex: number, itemIds: string[]) => void;
+
+  setFocusMode: (mode: FocusMode, moduleId?: string | null) => void;
+
+  setUI: (patch: Partial<UIState>) => void;
+  addRecentCommandSearch: (query: string) => void;
+
+  createPlanFromBlocks: (blocks: PlanBlock[], planName?: string) => void;
+  appendBlocksToPlan: (planId: string, blocks: Omit<PlanBlock, "phaseIndex" | "weekIndex">[], phaseIndex: number) => void;
 
   logDose: (entry: DoseLogEntry) => void;
   getDosesForDate: (date: string) => DoseLogEntry[];
@@ -73,6 +101,11 @@ export const useStore = create<AppState>()(
       symptomEntries: [],
       retestAlerts: [],
       settings: { supabaseSync: false, pwaInstalled: false },
+      compendiumItems: [],
+      savedModules: [],
+      focusMode: "full",
+      focusModuleId: null,
+      ui: { quickAddOpen: false, commandPaletteOpen: false, recentCommandSearches: [] },
 
       setCurrentPlan: (plan) => set({ currentPlan: plan }),
 
@@ -235,6 +268,100 @@ export const useStore = create<AppState>()(
       setRetestAlerts: (alerts) => set({ retestAlerts: alerts }),
 
       setSettings: (s) => set((state) => ({ settings: { ...state.settings, ...s } })),
+
+      addCompendiumItem: (item) =>
+        set((s) => {
+          const id = "id" in item && item.id ? item.id : crypto.randomUUID();
+          const full: CompendiumItem = {
+            ...item,
+            id,
+            tags: item.tags ?? [],
+            versionHistory: item.versionHistory ?? [],
+            links: item.links ?? [],
+          };
+          return { compendiumItems: [...s.compendiumItems, full] };
+        }),
+
+      updateCompendiumItem: (id, patch) =>
+        set((s) => ({
+          compendiumItems: s.compendiumItems.map((i) => (i.id === id ? { ...i, ...patch } : i)),
+        })),
+
+      removeCompendiumItem: (id) =>
+        set((s) => ({
+          compendiumItems: s.compendiumItems.filter((i) => i.id !== id),
+          savedModules: s.savedModules.map((m) => ({ ...m, itemIds: m.itemIds.filter((iid) => iid !== id) })),
+        })),
+
+      setCompendiumItems: (items) => set({ compendiumItems: items }),
+
+      addSavedModule: (module) =>
+        set((s) => ({
+          savedModules: [...s.savedModules, { ...module, id: crypto.randomUUID() }],
+        })),
+
+      removeSavedModule: (id) =>
+        set((s) => ({
+          savedModules: s.savedModules.filter((m) => m.id !== id),
+        })),
+
+      addCompendiumItemToPlan: (phaseIndex, item) => {
+        get().addBlockToPhase(phaseIndex, 0, {
+          id: `block-${item.id}-${Date.now()}`,
+          type: item.type,
+          refId: item.refId ?? item.id,
+          label: item.name,
+          notes: item.personalNotes,
+        });
+      },
+
+      addCompendiumItemsToPlan: (phaseIndex, itemIds) => {
+        const items = get().compendiumItems.filter((i) => itemIds.includes(i.id));
+        items.forEach((item) => get().addCompendiumItemToPlan(phaseIndex, item));
+      },
+
+      setFocusMode: (mode, moduleId) =>
+        set({ focusMode: mode, focusModuleId: moduleId ?? null }),
+
+      setUI: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
+
+      addRecentCommandSearch: (query) =>
+        set((s) => {
+          const q = query.trim();
+          if (!q) return {};
+          const recent = s.ui.recentCommandSearches ?? [];
+          const filtered = [q, ...recent.filter((r) => r !== q)].slice(0, 15);
+          return { ui: { ...s.ui, recentCommandSearches: filtered } };
+        }),
+
+      createPlanFromBlocks: (blocks, planName) => {
+        const plan: UserPlan = {
+          id: crypto.randomUUID(),
+          name: planName ?? "From subset",
+          createdAt: now(),
+          updatedAt: now(),
+          phases: defaultPhases().map((p, i) => ({
+            ...p,
+            blocks: i === 0 ? blocks.map((b) => ({ ...b, phaseIndex: 0, weekIndex: 0 })) : [],
+          })),
+        };
+        set((s) => ({ savedPlans: [...s.savedPlans, plan], currentPlan: plan }));
+      },
+
+      appendBlocksToPlan: (planId, blocks, phaseIndex) => {
+        const plan = get().savedPlans.find((p) => p.id === planId);
+        if (!plan) return;
+        const phases = [...plan.phases];
+        const phase = phases[phaseIndex];
+        if (!phase) return;
+        const fullBlocks: PlanBlock[] = blocks.map((b) => ({ ...b, phaseIndex, weekIndex: 0 }));
+        phases[phaseIndex] = { ...phase, blocks: [...phase.blocks, ...fullBlocks] };
+        const updated: UserPlan = { ...plan, phases, updatedAt: now() };
+        set((s) => ({
+          savedPlans: s.savedPlans.map((p) => (p.id === planId ? updated : p)),
+          currentPlan: s.currentPlan?.id === planId ? updated : s.currentPlan,
+        }));
+      },
     }),
     {
       name: "bioforgeos-storage",
@@ -246,6 +373,11 @@ export const useStore = create<AppState>()(
         symptomEntries: s.symptomEntries,
         retestAlerts: s.retestAlerts,
         settings: s.settings,
+        compendiumItems: s.compendiumItems,
+        savedModules: s.savedModules,
+        focusMode: s.focusMode,
+        focusModuleId: s.focusModuleId,
+        ui: { recentCommandSearches: s.ui.recentCommandSearches ?? [] },
       }),
     }
   )

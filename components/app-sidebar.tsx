@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Palette,
   BookOpen,
+  Library,
   FolderOpen,
   Activity,
   FileDown,
@@ -15,12 +16,14 @@ import {
   Menu,
   ChevronLeft,
 } from "lucide-react";
+import { CommandPaletteTriggerMobile } from "@/components/CommandPaletteTrigger";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/builder", label: "Builder Canvas", icon: Palette },
+  { href: "/compendium", label: "Compendium", icon: Library },
   { href: "/library", label: "Library", icon: BookOpen },
   { href: "/plans", label: "My Plans", icon: FolderOpen },
   { href: "/tracker", label: "Tracker", icon: Activity },
@@ -43,7 +46,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-14 items-center justify-between border-b border-[var(--card-border)] px-4">
           {!collapsed && (
-            <span className="font-bold text-[var(--gut-green)]">BioForgeOS</span>
+            <span className="font-bold text-[var(--gut-green)]" title="Open command palette (Ctrl+K)">BioForgeOS</span>
           )}
           <Button
             variant="ghost"
@@ -150,9 +153,69 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <main className="flex-1 overflow-auto p-4 md:p-6 pt-16 md:pt-6">
+      <main className="flex-1 overflow-auto p-4 md:p-6 pt-16 md:pt-6 pb-20 md:pb-6">
         {children}
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around h-14 glass border-t border-[var(--card-border)] safe-area-pb">
+        <Link
+          href="/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/dashboard" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <LayoutDashboard className="h-5 w-5" />
+          <span>Dashboard</span>
+        </Link>
+        <Link
+          href="/builder"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/builder" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <Palette className="h-5 w-5" />
+          <span>Builder</span>
+        </Link>
+        <Link
+          href="/compendium"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/compendium" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <Library className="h-5 w-5" />
+          <span>Compendium</span>
+        </Link>
+        <CommandPaletteTriggerMobile />
+        <Link
+          href="/tracker"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/tracker" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <Activity className="h-5 w-5" />
+          <span>Tracker</span>
+        </Link>
+        <Link
+          href="/export"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 py-2 px-3 text-xs font-medium min-w-[56px]",
+            pathname === "/export" ? "text-[var(--gut-green)]" : "text-[var(--foreground)]/70"
+          )}
+        >
+          <FileDown className="h-5 w-5" />
+          <span>Export</span>
+        </Link>
+      </nav>
     </div>
   );
 }

@@ -32,6 +32,35 @@ export interface SeedData {
 
 export type PlanBlockType = "goal" | "test" | "5r" | "peptide" | "diet" | "monitoring";
 
+export type EvidenceTier = "S" | "A" | "Frontier";
+
+export interface CompendiumItem {
+  id: string;
+  name: string;
+  type: PlanBlockType;
+  doseExamples?: string[];
+  moa?: string;
+  evidenceTier?: EvidenceTier;
+  personalNotes?: string;
+  tags: string[];
+  versionHistory: { at: string; note: string }[];
+  links: { label: string; url: string }[];
+  refId?: string; // link to seed peptide/test
+}
+
+export interface SavedModule {
+  id: string;
+  name: string;
+  itemIds: string[]; // compendium item IDs
+}
+
+export type FocusMode =
+  | "full"
+  | "peptides-only"
+  | "preconception"
+  | "gut-repair"
+  | "compendium-custom";
+
 export interface PlanBlock {
   id: string;
   type: PlanBlockType;
@@ -92,4 +121,10 @@ export interface RetestAlert {
 export interface SettingsState {
   supabaseSync: boolean;
   pwaInstalled: boolean;
+}
+
+export interface UIState {
+  quickAddOpen: boolean;
+  commandPaletteOpen?: boolean;
+  recentCommandSearches?: string[];
 }
