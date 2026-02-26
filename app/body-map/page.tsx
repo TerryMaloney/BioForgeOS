@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   useDraggable,
+  rectIntersection,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { useStore } from "@/lib/store";
@@ -41,6 +42,7 @@ export default function BodyMapPage() {
   const setUIState = useStore((s) => s.setUI);
   const currentPlan = useStore((s) => s.currentPlan);
   const updateBlockOrganIds = useStore((s) => s.updateBlockOrganIds);
+  const [highlightOrganId, setHighlightOrganId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -65,10 +67,17 @@ export default function BodyMapPage() {
         const existing = block.organIds ?? [];
         const next = existing.includes(organId) ? existing : [...existing, organId];
         updateBlockOrganIds(block.id, next);
+        setHighlightOrganId(organId);
       }
     },
     [updateBlockOrganIds]
   );
+
+  useEffect(() => {
+    if (!highlightOrganId) return;
+    const t = setTimeout(() => setHighlightOrganId(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightOrganId]);
 
   const allBlocks: PlanBlock[] = [];
   if (currentPlan) {
@@ -86,7 +95,7 @@ export default function BodyMapPage() {
         </p>
       </div>
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={rectIntersection} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-3 flex flex-col glass rounded-xl border border-[var(--card-border)] p-3">
             <h3 className="text-sm font-semibold text-[var(--foreground)]/80 mb-2">Plan blocks — drag to organ</h3>
@@ -103,7 +112,7 @@ export default function BodyMapPage() {
             )}
           </div>
           <div className="lg:col-span-9">
-            <BodyMap onAddToOrgan={handleAddToOrgan} enableDroppables />
+            <BodyMap onAddToOrgan={handleAddToOrgan} enableDroppables highlightOrganId={highlightOrganId} />
           </div>
         </div>
       </DndContext>
